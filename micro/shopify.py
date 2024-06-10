@@ -22,67 +22,90 @@ session.headers.update({"Content-Type": "application/json"})
 ##
 #
 
-def count(resource, params):
+class Resource:
 
-    logging.debug("counting on shopify, params: %s", params)
+    def __init__(self, name):
+        self.name = name
 
-    res = session.get(f"{API_URL}/{resource}/count.json", params=params)
+    def count(self, params):
 
-    if res.status_code >= 400:
-        raise Exception(f"{res.status_code} - {res.text}")
+        logging.debug("counting on shopify, params: %s", params)
 
-    data = res.json()['count']
-
-    logging.debug("count: %d", data)
-
-    return data
-
-##
-#
-
-def search(resource, params):
-
-    logging.debug("searching on shopify, params: %s", params)
-
-    limit = params.get("limit", 250)
-
-    total = 0
-    items = []
-
-    while True:
-
-        res = session.get(f"{API_URL}/{resource}.json", params=params)
+        res = session.get(f"{API_URL}/{self.name}/count.json", params=params)
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
 
-        data = res.json()[resource]
+        data = res.json()['count']
 
-        items += data
+        logging.debug("count: %d", data)
 
-        total += len(data)
+        return data
 
-        links = res.headers.get("link")
+    def search(self, params):
 
-        if not links:
-            break
+        logging.debug("searching on shopify, params: %s", params)
 
-        pages = {}
+        limit = params.get("limit", 250)
 
-        for link in links.split(","):
-            tokens = re.findall(".*page_info=(.*)>.*(next|previous).*", link)[0]
-            pages[tokens[1]] = tokens[0]
+        total = 0
+        items = []
 
-        next_page = pages.get("next")
+        while True:
 
-        if next_page is None:
-            break
+            res = session.get(f"{API_URL}/{self.name}.json", params=params)
 
-        params = {
-            "limit": limit,
-            "page_info": next_page
-        }
+            if res.status_code >= 400:
+                raise Exception(f"{res.status_code} - {res.text}")
 
-        time.sleep(1)
+            data = res.json()[self.name]
 
-    return items
+            items += data
+
+            total += len(data)
+
+            links = res.headers.get("link")
+
+            if not links:
+                break
+
+            pages = {}
+
+            for link in links.split(","):
+                tokens = re.findall(".*page_info=(.*)>.*(next|previous).*", link)[0]
+                pages[tokens[1]] = tokens[0]
+
+            next_page = pages.get("next")
+
+            if next_page is None:
+                break
+
+            params = {
+                "limit": limit,
+                "page_info": next_page
+            }
+
+            time.sleep(1)
+
+        return items
+
+    def get(self, resourceId):
+
+        res = session.get(f"{API_URL}/{self.name}/{resourceId}.json")
+
+        if res.status_code >= 400:
+            raise Exception(f"{res.status_code} - {res.text}")
+
+        return res.json()[self.name[:-1]]
+    
+    def put(self, resourceId, data):
+
+        payload = {}
+        payload[self.name[:-1]] = data
+
+        res = session.put(f"{API_URL}/{self.name}/{resourceId}.json", json=payload)
+
+        if res.status_code >= 400:
+            raise Exception(f"{res.status_code} - {res.text}")
+
+        return res.json()
