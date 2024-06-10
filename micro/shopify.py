@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*
 
-from datetime import datetime
-from datetime import timedelta
+from . import config
 
 import logging
 import requests
@@ -20,20 +19,32 @@ session = requests.Session()
 session.auth = (USERNAME, PASSWORD)
 session.headers.update({"Content-Type": "application/json"})
 
+##
+#
+
+def count(resource, params):
+
+    logging.debug("counting on shopify, params: %s", params)
+
+    res = session.get(f"{API_URL}/{resource}/count.json", params=params)
+
+    if res.status_code >= 400:
+        raise Exception(f"{res.status_code} - {res.text}")
+
+    data = res.json()['count']
+
+    logging.debug("count: %d", data)
+
+    return data
+
+##
+#
+
 def search(resource, params):
 
     logging.debug("searching on shopify, params: %s", params)
 
     limit = params.get("limit", 250)
-
-    res = session.get(f"{API_URL}/orders/count.json", params=params)
-
-    if res.status_code >= 400:
-        raise Exception(f"{res.status_code} - {res.text}")
-
-    count = res.json()['count']
-
-    logging.debug("count: %d", count)
 
     total = 0
     items = []
@@ -74,4 +85,4 @@ def search(resource, params):
 
         time.sleep(1)
 
-    return count, items
+    return items
