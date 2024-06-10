@@ -40,16 +40,16 @@ def search(resource, params):
 
     while True:
 
-        res = session.get(f"{API_URL}/orders.json", params=params)
+        res = session.get(f"{API_URL}/{resource}.json", params=params)
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
 
-        orders = res.json()["orders"]
+        data = res.json()[resource]
 
-        items += orders
+        items += data
 
-        total += len(orders)
+        total += len(data)
 
         links = res.headers.get("link")
 
