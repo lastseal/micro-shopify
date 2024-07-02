@@ -12,6 +12,7 @@ NAME = os.getenv("SHOPIFY_NAME")
 USERNAME = os.getenv("SHOPIFY_USER")
 PASSWORD = os.getenv("SHOPIFY_PASS")
 VERSION = os.getenv("SHOPIFY_VERSION")
+SHOPIFY_CALL_LIMIT = int(os.getenv("SHOPIFY_CALL_LIMIT", "35"))
 
 API_URL = f"https://{NAME}.myshopify.com/admin/api/{VERSION}"
 
@@ -35,6 +36,8 @@ class Resource:
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
+        
+        self.checkCallLimit(res.headers)
 
         data = res.json()['count']
 
@@ -57,6 +60,8 @@ class Resource:
 
             if res.status_code >= 400:
                 raise Exception(f"{res.status_code} - {res.text}")
+            
+            self.checkCallLimit(res.headers)
 
             data = res.json()[self.name]
 
@@ -95,6 +100,8 @@ class Resource:
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
+        
+        self.checkCallLimit(res.headers)
 
         return res.json()[self.name[:-1]]
     
@@ -109,3 +116,15 @@ class Resource:
             raise Exception(f"{res.status_code} - {res.text}")
 
         return res.json()
+    
+    def checkCallLimit(self, headers):
+
+        header = re.findall(r"(\d*)/(\d*)", headers.get("X-Shopify-Shop-Api-Call-Limit"))
+
+        if header:
+            limit = header[0]
+            delta = int(limit[1]) - int(limit[0])
+
+            if delta < SHOPIFY_CALL_LIMIT:
+                logging.warning("Shopify Call Limit %s/%s", limit[0], limit[1])
+                time.sleep(10.0)
