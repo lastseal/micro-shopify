@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*
 
-from . import config
+from micro import config
 
 import logging
 import requests
