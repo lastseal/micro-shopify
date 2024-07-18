@@ -159,7 +159,7 @@ class Resource:
             while True:
                 try:
                     handle(*args, **kwargs)
-                except requests.exceptions.ReadTimeout as ex:
+                except Exception as ex:
                     if retries > self.retries:
                         raise ex
 
