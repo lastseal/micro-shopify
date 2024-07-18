@@ -25,14 +25,16 @@ session.headers.update({"Content-Type": "application/json"})
 
 class Resource:
 
-    def __init__(self, name):
+    def __init__(self, name, timeout=30, retries=3):
         self.name = name
+        self.timeout = timeout
+        self.retries = retries
 
     def count(self, params={}):
 
         logging.debug("counting on shopify, params: %s", params)
 
-        res = session.get(f"{API_URL}/{self.name}/count.json", params=params)
+        res = session.get(f"{API_URL}/{self.name}/count.json", params=params, timeout=self.timeout)
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
@@ -56,7 +58,7 @@ class Resource:
 
         while True:
 
-            res = session.get(f"{API_URL}/{self.name}.json", params=params)
+            res = session.get(f"{API_URL}/{self.name}.json", params=params, timeout=self.timeout)
 
             if res.status_code >= 400:
                 raise Exception(f"{res.status_code} - {res.text}")
@@ -96,7 +98,7 @@ class Resource:
 
     def get(self, resourceId):
 
-        res = session.get(f"{API_URL}/{self.name}/{resourceId}.json")
+        res = session.get(f"{API_URL}/{self.name}/{resourceId}.json", timeout=self.timeout)
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
@@ -110,7 +112,19 @@ class Resource:
         payload = {}
         payload[self.name[:-1]] = data
 
-        res = session.put(f"{API_URL}/{self.name}/{resourceId}.json", json=payload)
+        res = session.put(f"{API_URL}/{self.name}/{resourceId}.json", json=payload, timeout=self.timeout)
+
+        if res.status_code >= 400:
+            raise Exception(f"{res.status_code} - {res.text}")
+
+        return res.json()
+
+    def post(self, data):
+
+        payload = {}
+        payload[self.name[:-1]] = data
+
+        res = session.post(f"{API_URL}/{self.name}.json", json=payload, timeout=self.timeout)
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
