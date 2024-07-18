@@ -164,7 +164,7 @@ class Resource:
                         raise ex
 
                     retries += 1
-                    logging.warning("timeout expired (%d) retry: %d", self.timeout, retries)
+                    logging.warning("retry: %d, ex: %s", retries, ex)
                 
                     time.sleep(1)
                     continue
