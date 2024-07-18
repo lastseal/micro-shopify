@@ -30,7 +30,7 @@ class Resource:
         self.timeout = timeout
         self.retries = retries
 
-    @self.retry()
+    @self.retry
     def count(self, params={}):
 
         logging.debug("counting on shopify, params: %s", params)
