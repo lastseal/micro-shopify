@@ -156,7 +156,7 @@ class Resource:
 
     def retry(self):
         def decorator(handle):
-            def wrapper(*args, **kwargs)
+            def wrapper(*args, **kwargs):
                 while True:
                     try:
                         handle(*args, **kwargs)
