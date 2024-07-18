@@ -156,6 +156,7 @@ class Resource:
 
     def retry(self, func):
         def wrapper(*args, **kwargs):
+            retries = 0
             while True:
                 try:
                     return func(*args, **kwargs)
