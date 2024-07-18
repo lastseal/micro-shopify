@@ -154,20 +154,24 @@ class Resource:
                 logging.warning("Shopify Call Limit %s/%s", limit[0], limit[1])
                 time.sleep(10.0)
 
-    def retry(self, handle):
-        def decorator(*args, **kwargs):
-            while True:
-                try:
-                    handle(*args, **kwargs)
-                except Exception as ex:
-                    if retries > self.retries:
-                        raise ex
+    def retry(self):
+        def decorator(handle):
+            def wrapper(*args, **kwargs)
+                while True:
+                    try:
+                        handle(*args, **kwargs)
+                        break
+                    except Exception as ex:
+                        if retries > self.retries:
+                            raise ex
 
-                    retries += 1
-                    logging.warning("retry: %d, ex: %s", retries, ex)
+                        retries += 1
+                        logging.warning("retry: %d, ex: %s", retries, ex)
                 
-                    time.sleep(1)
-                    continue
+                        time.sleep(1)
+                        continue
+                        
+            return wrapper
                     
         return decorator
         
