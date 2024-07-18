@@ -28,7 +28,7 @@ class Resource:
     def __init__(self, name):
         self.name = name
 
-    def count(self, params):
+    def count(self, params={}):
 
         logging.debug("counting on shopify, params: %s", params)
 
@@ -45,7 +45,7 @@ class Resource:
 
         return data
 
-    def search(self, params):
+    def search(self, params={}):
 
         logging.debug("searching on shopify, params: %s", params)
 
