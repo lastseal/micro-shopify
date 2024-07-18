@@ -30,6 +30,7 @@ class Resource:
         self.timeout = timeout
         self.retries = retries
 
+    @self.retry()
     def count(self, params={}):
 
         logging.debug("counting on shopify, params: %s", params)
@@ -55,13 +56,20 @@ class Resource:
 
         total = 0
         items = []
+        retries = 0
 
-        while True:
-
+        @self.retry
+        def find():
             res = session.get(f"{API_URL}/{self.name}.json", params=params, timeout=self.timeout)
 
             if res.status_code >= 400:
                 raise Exception(f"{res.status_code} - {res.text}")
+
+            return res
+
+        while True:
+
+            res = find()
             
             self.checkCallLimit(res.headers)
 
@@ -96,6 +104,7 @@ class Resource:
 
         return items
 
+    @self.retry
     def get(self, resourceId):
 
         res = session.get(f"{API_URL}/{self.name}/{resourceId}.json", timeout=self.timeout)
@@ -106,7 +115,8 @@ class Resource:
         self.checkCallLimit(res.headers)
 
         return res.json()[self.name[:-1]]
-    
+
+    @self.retry
     def put(self, resourceId, data):
 
         payload = {}
@@ -119,6 +129,7 @@ class Resource:
 
         return res.json()
 
+    @self.retry
     def post(self, data):
 
         payload = {}
@@ -142,3 +153,21 @@ class Resource:
             if delta < SHOPIFY_CALL_LIMIT:
                 logging.warning("Shopify Call Limit %s/%s", limit[0], limit[1])
                 time.sleep(10.0)
+
+    def retry(self, handle):
+        def decorator(*args, **kwargs):
+            while True:
+                try:
+                    handle(*args, **kwargs)
+                except requests.exceptions.ReadTimeout as ex:
+                    if retries > self.retries:
+                        raise ex
+
+                    retries += 1
+                    logging.warning("timeout expired (%d) retry: %d", self.timeout, retries)
+                
+                    time.sleep(1)
+                    continue
+                    
+        return decorator
+        
