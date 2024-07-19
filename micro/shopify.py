@@ -30,12 +30,12 @@ class Resource:
         self.timeout = timeout
         self.retries = retries
 
-    def retry(self, func):
-        def wrapper(*args, **kwargs):
+    def retry(func):
+        def wrapper(self, *args, **kwargs):
             retries = 0
             while retries <= self.retries:
                 try:
-                    return func(*args, **kwargs)
+                    return func(self, *args, **kwargs)
                 except Exception as ex:
                     retries += 1
                     logging.warning("retry: %d, ex: %s", retries, ex)
@@ -44,7 +44,7 @@ class Resource:
                         raise ex
                         
         return wrapper
-
+      
     @retry
     def count(self, params={}):
 
@@ -63,6 +63,15 @@ class Resource:
 
         return data
 
+    def find(self, params={}):
+
+        res = session.get(f"{API_URL}/{self.name}.json", params=params, timeout=self.timeout)
+
+        if res.status_code >= 400:
+            raise Exception(f"{res.status_code} - {res.text}")
+
+        return res
+
     def search(self, params={}):
 
         logging.debug("searching on shopify, params: %s", params)
@@ -73,18 +82,9 @@ class Resource:
         items = []
         retries = 0
 
-        @self.retry
-        def find():
-            res = session.get(f"{API_URL}/{self.name}.json", params=params, timeout=self.timeout)
-
-            if res.status_code >= 400:
-                raise Exception(f"{res.status_code} - {res.text}")
-
-            return res
-
         while True:
 
-            res = find()
+            res = self.find(params)
             
             self.checkCallLimit(res.headers)
 
@@ -169,6 +169,7 @@ class Resource:
                 logging.warning("Shopify Call Limit %s/%s", limit[0], limit[1])
                 time.sleep(10.0)
 
+    
     
         
         
