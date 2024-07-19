@@ -63,6 +63,7 @@ class Resource:
 
         return data
 
+    @retry
     def find(self, params={}):
 
         res = session.get(f"{API_URL}/{self.name}.json", params=params, timeout=self.timeout)
