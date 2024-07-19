@@ -30,6 +30,21 @@ class Resource:
         self.timeout = timeout
         self.retries = retries
 
+    def retry(self, func):
+        def wrapper(*args, **kwargs):
+            retries = 0
+            while retries <= self.retries::
+                try:
+                    return func(*args, **kwargs)
+                except Exception as ex:
+                    retries += 1
+                    logging.warning("retry: %d, ex: %s", retries, ex)
+                    time.sleep(1)
+                    if retries > self.retries:
+                        raise ex
+                        
+        return wrapper
+
     @retry
     def count(self, params={}):
 
@@ -154,19 +169,6 @@ class Resource:
                 logging.warning("Shopify Call Limit %s/%s", limit[0], limit[1])
                 time.sleep(10.0)
 
-    def retry(self, func):
-        def wrapper(*args, **kwargs):
-            retries = 0
-            while True:
-                try:
-                    return func(*args, **kwargs)
-                except Exception as ex:
-                    retries += 1
-                    logging.warning("retry: %d, ex: %s", retries, ex)
-                    time.sleep(1)
-                    if retries > self.retries:
-                        raise ex
-                        
-        return wrapper
+    
         
         
