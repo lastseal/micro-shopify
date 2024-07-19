@@ -33,7 +33,7 @@ class Resource:
     def retry(self, func):
         def wrapper(*args, **kwargs):
             retries = 0
-            while retries <= self.retries::
+            while retries <= self.retries:
                 try:
                     return func(*args, **kwargs)
                 except Exception as ex:
