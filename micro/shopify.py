@@ -148,10 +148,7 @@ class Resource:
     @retry
     def post(self, data):
 
-        payload = {}
-        payload[self.name[:-1]] = data
-
-        res = session.post(f"{API_URL}/{self.name}.json", json=payload, timeout=self.timeout)
+        res = session.post(f"{API_URL}/{self.name}.json", json=data, timeout=self.timeout)
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
