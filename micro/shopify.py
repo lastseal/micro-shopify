@@ -135,10 +135,7 @@ class Resource:
     @retry
     def put(self, resourceId, data):
 
-        payload = {}
-        payload[self.name[:-1]] = data
-
-        res = session.put(f"{API_URL}/{self.name}/{resourceId}.json", json=payload, timeout=self.timeout)
+        res = session.put(f"{API_URL}/{self.name}/{resourceId}.json", json=data, timeout=self.timeout)
 
         if res.status_code >= 400:
             raise Exception(f"{res.status_code} - {res.text}")
