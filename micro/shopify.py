@@ -5,6 +5,7 @@ from micro import config
 import logging
 import requests
 import time
+import json
 import re
 import os
 
@@ -164,7 +165,155 @@ class Resource:
                 logging.warning("Shopify Call Limit %s/%s", limit[0], limit[1])
                 time.sleep(10.0)
 
+##
+#
+
+def upload(filename, filedata):
+
+    logging.debug("graphql: stagedUploadsCreate")
+
+    timeout = 60
+
+    query = '''
+    mutation stagedUploadsCreate($input: [StagedUploadInput!]!) {
+        stagedUploadsCreate(input: $input) {
+            stagedTargets {
+                resourceUrl
+                url
+                parameters {
+                    name
+                    value
+                }
+            }
+            userErrors {
+                field
+                message
+            }
+        }
+    }
+    '''
+
+    variables = {
+        "input": {
+            "filename": filename,
+            "httpMethod": "POST",
+            "mimeType": "application/pdf",
+            "resource": "FILE"
+        }
+    }
+
+    logging.debug("variables: %s", variables)
+
+    while True:
+
+        time.sleep(0.1)
+
+        try:
+            res = session.post(f"{API_URL}/graphql.json", timeout=timeout, json={
+                "query": query, 
+                "variables": variables
+            })
+            
+            if res.status_code >= 400:
+                logging.warning("status: %s, text: %s", res.status_code, res.text)
+                continue
+            
+            break
+        except Exception as ex:
+            logging.warning("stagedUploadsCreate: %s", ex)
+
+    target = res.json()['data']['stagedUploadsCreate']['stagedTargets'][0];
+
+    params = target['parameters']
+    url = target['url']
+    resourceUrl = target['resourceUrl']
+
+    data = {}
+
+    for p in params:
+        data[p['name']] = p['value']
+
+    logging.debug("creating bucket in %s", resourceUrl)
+
+    while True:
+
+        res = requests.post(url, data=data, timeout=timeout, files={
+            'file': filedata
+        })
+
+        if res.status_code >= 400:
+            logging.warning("status: %s, text: %s", res.status_code, res.text)
+            time.sleep(0.1)
+            continue
+        
+        break
+        
+    logging.debug("uploading file on shopify")
+
+    query = """
+    mutation fileCreate($files: [FileCreateInput!]!) {
+        fileCreate(files: $files) {
+            files {
+                id
+            }
+            userErrors {
+                field
+                message
+            }
+        }
+    }
+    """
+
+    variables = {
+        "files": {
+            "alt": "Boleta Electrónica",
+            "contentType": "FILE",
+            "originalSource": resourceUrl
+        }
+    }
+
+    while True:
+
+        res = session.post(f"{API_URL}/graphql.json", timeout=timeout, json={
+            "query": query, 
+            "variables": variables
+        })
+
+        if res.status_code >= 400:
+            logging.warning("status: %s, text: %s", res.status_code, res.text)
+            time.sleep(0.1)
+            continue
+        
+        break
     
+    gid = res.json()['data']['fileCreate']['files'][0]['id']
+
+    logging.debug("gid: %s", gid)
+
+    query = 'query { node(id: "'+gid+'") { id ... on GenericFile { url fileStatus } } }'
+
+    while True:
+
+        res = session.post(f"{API_URL}/graphql.json", timeout=timeout, json={"query": query})
+        
+        if res.status_code >= 400:
+            logging.warning("status: %s, text: %s", res.status_code, res.text)
+            time.sleep(0.1)
+            continue
+        
+        node = res.json()['data']['node']
+        
+        logging.debug("node: %s", node)
+
+        if node['fileStatus'] == "READY":
+            break
+
+        elif node['fileStatus'] == "FAILED":
+            raise Exception(json.dumps(node))
+
+        time.sleep(0.1)
+    
+    return node['url']
     
         
         
