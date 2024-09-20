@@ -168,7 +168,7 @@ class Resource:
 ##
 #
 
-def upload(filename, filedata):
+def upload(filename, fileurl):
 
     timeout = 60
         
@@ -192,7 +192,7 @@ def upload(filename, filedata):
         "files": {
             "alt": "Boleta Electrónica",
             "contentType": "FILE",
-            "originalSource": resourceUrl
+            "originalSource": fileurl
         }
     }
 
