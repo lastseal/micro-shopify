@@ -144,6 +144,16 @@ class Resource:
         return res.json()
 
     @retry
+    def delete(self, resourceId):
+
+        res = session.delete(f"{API_URL}/{self.name}/{resourceId}.json", timeout=self.timeout)
+
+        if res.status_code >= 400:
+            raise Exception(f"{res.status_code} - {res.text}")
+
+        return res.json()
+
+    @retry
     def post(self, data):
 
         res = session.post(f"{API_URL}/{self.name}.json", json=data, timeout=self.timeout)
